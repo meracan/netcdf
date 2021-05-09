@@ -1,5 +1,5 @@
 # NetCDF
-Python wrapper to the  [NetCDF4](https://github.com/Unidata/netcdf4-python) python library.
+Python [NetCDF4](https://github.com/Unidata/netcdf4-python) wrapper.
 
 Created mainly to store data (e.g. byte, float, double) into a different smaller size format and save storage space. 
 Most often used to store double precision (8bytes) format into byte format, where accurary is less important.
@@ -29,8 +29,10 @@ input={
 }
 filePath = "test_1.nc"
 NetCDF.create(filePath,**input) # <--- NetCDF was created and data was stored inside the NetCDF
-netcdf['a'][:]==np.arange(-128,128,dtype="i1")
-netcdf['b'][:]==np.arange(0,256,dtype="f4") # <--- Data was stored as u1 but retrieved as float
+with NetCDF(filePath, "r") as netcdf: # <--- Open NetCDF file
+  np.testing.assert_array_equal(netcdf['a'][:],np.arange(-128,128,dtype="i1"))
+  np.testing.assert_array_equal(netcdf['b'][:],np.arange(0,256,dtype="f4"))# <--- Data was stored as u1 but retrieved as float
+
 ```
 
 Other examples are shown in `test_python.py`
