@@ -1,5 +1,6 @@
 import numpy as np
 import json
+from netCDF4 import Dataset,stringtochar,chartostring,Variable,Group
 
 def is_json(myjson):
   try:
@@ -37,19 +38,34 @@ def prepareTransformAttributes(attributes):
   f=maxV/(max-min)
   return min,max,minO,maxO,f,dtype,ftype
 
-def getT(attributes,value):
-  if not attributes:return value
-  min,max,minO,maxO,f,dtype,ftype=prepareTransformAttributes(attributes)
-  value=(((value+np.abs(minO))/f)+min).astype(ftype)
+
+
+def getT(attributes,value,isChar=False):
+  ftype=attributes['ftype']
+  if "min" in attributes and "max" in attributes and attributes['type']!=attributes['ftype'] :
+    min,max,minO,maxO,f,dtype,ftype=prepareTransformAttributes(attributes)
+    value=(((value+np.abs(minO))/f)+min).astype(ftype)
+    
+  if ftype=="M":value=value.astype('datetime64[ms]')
+  if ftype=="S1":value=value.astype("S1") if isChar else chartostring(value.astype("S1"))
+  
   return value
  
-def setT(attributes,value):
-  if not attributes:return value
-  min,max,minO,maxO,f,dtype,x=prepareTransformAttributes(attributes)
-  value=np.clip(value, min, max)
-  value=np.rint((value-min)*f-np.abs(minO))
-  value=np.clip(value, minO, maxO)
-  return value.astype(dtype)      
+def setT(attributes,value,isChar=False,variable=None):
+  ftype=attributes['ftype']
+  if ftype=="M":value=value.astype("datetime64[ms]").astype("f8")
+  if ftype=='S1' and not isChar:value=stringtochar(np.array(value).astype("S{}".format(variable.shape[1])))
+  
+  if "min" in attributes and "max" in attributes and attributes['type']!=attributes['ftype'] :
+    min,max,minO,maxO,f,dtype,x=prepareTransformAttributes(attributes)
+    value=np.clip(value, min, max)
+    value=(value-min)*f-np.abs(minO)
+    # value=np.rint(np.nextafter(value, value+1))
+    value=np.rint(value)
+    value=np.clip(value, minO, maxO)
+    value=value.astype(dtype)      
+  
+  return value
 
 
 class NpEncoder(json.JSONEncoder):

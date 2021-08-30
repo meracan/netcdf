@@ -146,8 +146,7 @@ class NetCDF(Dataset):
     """
     variables:{"{name}":obj}
     """
-    
-    if not 'type' in variable:raise Exception("Variable need a type")
+    if not 'type' in variable:raise Exception("Variable need a type - {} - {}".format(name,variable))
     if not 'dimensions' in variable:raise Exception("Variable need dimensions")
     data=variable.pop("data",None)
     type=variable.pop("type")
@@ -262,30 +261,11 @@ class VariableCDF(object):
       obj[key]=getattr(self.variable, key)  
     return obj
   
-  @property  
-  def tattributes(self):
-    attributes=self.attributes
-    if "min" in attributes and "max" in attributes and attributes['type']!=attributes['ftype'] :return attributes
-    return None
-        
   def __getitem__(self, idx):
     value=self.variable.__getitem__(idx)
-    value=getT(self.tattributes,value)
-    type=self.attributes['ftype']
-    
-    if type=="M":value=value.astype('datetime64[ms]')
-    if type=="S1":
-      if self.isChar:value=value.astype("S1")
-      else:value=chartostring(value.astype("S1"))
+    value=getT(self.attributes,value)
     return value
       
   def __setitem__(self, idx,value):
-    attributes=self.attributes
-    type=attributes['ftype']
-    if type=="M":value=value.astype("datetime64[ms]").astype("f8")
-    if type=='S1':
-      if not self.isChar:
-        value=stringtochar(np.array(value).astype("S{}".format(self.variable.shape[1])))
-      
-    value=setT(self.tattributes,value)
+    value=setT(self.attributes,value,isChar=self.isChar,variable=self.variable)
     self.variable.__setitem__(idx,value)
